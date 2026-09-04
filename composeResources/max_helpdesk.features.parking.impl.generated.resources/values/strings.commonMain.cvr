@@ -1,3 +1,6 @@
 version:0
-string|parking_open_qr_picker_button|0JLRi9Cx0YDQsNGC0YwgUVI=
+string|parking_check_pass_btn_next_step|0JTQsNC70LXQtQ==
+string|parking_check_pass_btn_process|0J/RgNC+0LLQtdGA0LrQsA==
+string|parking_check_pass_btn_text_default|0J/RgNC+0LLQtdGA0LjRgtGM
+string|parking_scan_max_unavailable|0KHQutCw0L3QuNGA0L7QstCw0L3QuNC1IFFSINGH0LXRgNC10LcgTUFYINC90LXQtNC+0YHRgtGD0L/QvdC+LiDQmNGB0L/QvtC70YzQt9GD0LnRgtC1INGA0YPRh9C90L7QuSDQstCy0L7QtC4=
 string|parking_scan_qr_button|0KHQutCw0L3QuNGA0L7QstCw0YLRjCBRUg==
