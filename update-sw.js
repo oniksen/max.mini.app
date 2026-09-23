@@ -24,7 +24,8 @@ self.addEventListener('fetch', (event) => {
                 if (!build) return fetch(event.request);
 
                 const path = url.pathname;
-                const fileName = path === '/' ? 'index.html' : path.substring(1);
+                const base = new URL(self.registration.scope).pathname;
+                const fileName = resolveCacheFileName(path, base);
                 const fileData = build.files[fileName];
 
                 if (fileData) {
@@ -75,6 +76,16 @@ function getActiveBuild(db) {
             reject(event.target.error);
         };
     });
+}
+
+function resolveCacheFileName(path, base) {
+    if (path === base || path === base.replace(/\/$/, '') || path === '/') {
+        return 'index.html';
+    }
+    if (base.length > 1 && path.startsWith(base)) {
+        return path.substring(base.length) || 'index.html';
+    }
+    return path.substring(1) || 'index.html';
 }
 
 function getContentType(fileName) {
