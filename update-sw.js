@@ -17,6 +17,10 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
     if (url.origin !== self.location.origin) return;
 
+    if (event.request.mode === 'navigate') {
+        console.log(`[SW] navigate ${url.pathname}${url.search}`);
+    }
+
     event.respondWith(
         openDatabase()
             .then((db) => getActiveBuild(db))
