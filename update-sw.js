@@ -29,15 +29,20 @@ self.addEventListener('fetch', (event) => {
                 const fileData = build.files[fileName];
 
                 if (fileData) {
+                    console.log(`[SW] Serving cached: ${fileName} (req ${url.pathname})`);
                     const contentType = getContentType(fileName);
                     return new Response(fileData, {
                         headers: { 'Content-Type': contentType }
                     });
                 }
 
+                console.log(`[SW] No cache for ${fileName}, fetching network`);
                 return fetch(event.request);
             })
-            .catch(() => fetch(event.request))
+            .catch((e) => {
+                console.log(`[SW] DB error ${e}, fetching network`);
+                return fetch(event.request);
+            })
     );
 });
 
