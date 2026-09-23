@@ -26,11 +26,12 @@ self.addEventListener('fetch', (event) => {
                 const path = url.pathname;
                 const base = new URL(self.registration.scope).pathname;
                 const fileName = resolveCacheFileName(path, base);
-                const fileData = build.files[fileName];
+                const cachedKey = findCachedKey(build, fileName);
+                const fileData = cachedKey ? build.files[cachedKey] : null;
 
                 if (fileData) {
-                    console.log(`[SW] Serving cached: ${fileName} (req ${url.pathname})`);
-                    const contentType = getContentType(fileName);
+                    console.log(`[SW] Serving cached: ${cachedKey} (req ${url.pathname})`);
+                    const contentType = getContentType(cachedKey);
                     return new Response(fileData, {
                         headers: { 'Content-Type': contentType }
                     });
@@ -93,6 +94,23 @@ function resolveCacheFileName(path, base) {
         return path.substring(base.length) || 'index.html';
     }
     return path.substring(1) || 'index.html';
+}
+
+function findCachedKey(build, fileName) {
+    const files = build.files || {};
+    if (files[fileName]) return fileName;
+
+    const suffix = '/' + fileName;
+    const keys = Object.keys(files);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (key.startsWith('__MACOSX')) continue;
+        if (key !== fileName && key.endsWith(suffix)) {
+            console.log(`[SW] Fallback key: ${fileName} -> ${key}`);
+            return key;
+        }
+    }
+    return null;
 }
 
 function getContentType(fileName) {
