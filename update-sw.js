@@ -37,6 +37,8 @@ self.addEventListener('fetch', (event) => {
                 }
 
                 console.log(`[SW] No cache for ${fileName}, fetching network`);
+                const keys = Object.keys(build.files || {});
+                console.log(`[SW] Build keys (${keys.length}): ${keys.slice(0, 10).join(', ')}`);
                 return fetch(event.request);
             })
             .catch((e) => {
