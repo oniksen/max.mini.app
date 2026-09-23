@@ -1,6 +1,6 @@
 const CACHE_DB_NAME = 'app-updates';
 const CACHE_STORE = 'builds';
-const SW_VERSION = 2;
+const SW_VERSION = 3;
 
 function postToPage(type, payload) {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -28,11 +28,52 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
     const data = event.data || {};
     if (data.type === 'ping') {
-        event.ports && event.ports[0]
-            ? event.ports[0].postMessage({ type: 'pong', version: SW_VERSION })
-            : postToPage('pong', { version: SW_VERSION });
+        reply(event, { type: 'pong', version: SW_VERSION });
+        return;
     }
+
+    if (data.type === 'has-build') {
+        openDatabase()
+            .then((db) => getBuildByUrl(db, data.url))
+            .then((build) => {
+                const ok = !!build;
+                console.log(`[SW] has-build: url=${data.url} ok=${ok}`);
+                postToPage('has-build', { url: data.url, ok });
+                reply(event, { type: 'has-build', ok, url: data.url });
+            })
+            .catch((e) => {
+                console.log(`[SW] has-build error ${e}`);
+                reply(event, { type: 'has-build', ok: false, url: data.url, error: String(e) });
+            });
+        return;
+    }
+
+    if (data.type === 'store-build') {
+        const payload = data.payload || {};
+        openDatabase()
+            .then((db) => putBuildInDb(db, payload.url, payload.files))
+            .then(() => {
+                console.log(`[SW] build stored: url=${payload.url}`);
+                postToPage('build-stored', { url: payload.url });
+                reply(event, { type: 'build-stored', ok: true, url: payload.url });
+            })
+            .catch((e) => {
+                console.log(`[SW] build store failed ${e}`);
+                reply(event, { type: 'build-stored', ok: false, url: payload.url, error: String(e) });
+            });
+        return;
+    }
+
+    console.log(`[SW] Unknown message type: ${data.type}`);
 });
+
+function reply(event, message) {
+    if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage(message);
+    } else {
+        postToPage(message.type, message.payload || {});
+    }
+}
 
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
@@ -134,6 +175,38 @@ function getActiveBuild(db) {
         request.onerror = (event) => {
             db.close();
             reject(event.target.error);
+        };
+    });
+}
+
+function getBuildByUrl(db, url) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(CACHE_STORE, 'readonly');
+        const store = tx.objectStore(CACHE_STORE);
+        const request = store.get(url);
+        request.onsuccess = () => {
+            db.close();
+            resolve(request.result || null);
+        };
+        request.onerror = () => {
+            db.close();
+            reject(request.error);
+        };
+    });
+}
+
+function putBuildInDb(db, url, files) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(CACHE_STORE, 'readwrite');
+        const store = tx.objectStore(CACHE_STORE);
+        store.put({ url: url, files: files, timestamp: Date.now() });
+        tx.oncomplete = () => {
+            db.close();
+            resolve();
+        };
+        tx.onerror = () => {
+            db.close();
+            reject(tx.error);
         };
     });
 }
